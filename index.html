@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Press PDF Form Filler</title>
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AR Press PDF Form Automation</h1>
+            <p>Upload PDF forms, create templates, and auto-fill with natural language</p>
+        </header>
+
+        <main>
+            <!-- PDF Upload Section -->
+            <section class="upload-section">
+                <h2>1. Upload PDF Form</h2>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <div class="upload-icon">📄</div>
+                        <p>Drop PDF here or click to browse</p>
+                        <input type="file" id="pdfInput" accept=".pdf" hidden>
+                    </div>
+                </div>
+                <div class="upload-status" id="uploadStatus"></div>
+            </section>
+
+            <!-- Template Management -->
+            <section class="template-section">
+                <h2>2. Template Management</h2>
+                <div class="template-controls">
+                    <div class="save-template">
+                        <input type="text" id="templateName" placeholder="Template name (e.g., Author Services Plan 7/23/25)">
+                        <button id="saveTemplate" disabled>Save Template</button>
+                    </div>
+                    <div class="load-template">
+                        <select id="templateSelect">
+                            <option value="">Select saved template...</option>
+                        </select>
+                        <button id="loadTemplate" disabled>Load Template</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Field Analysis Display -->
+            <section class="analysis-section">
+                <h2>3. Form Fields Analysis</h2>
+                <div class="fields-container" id="fieldsContainer">
+                    <p class="no-fields">Upload a PDF to see form fields</p>
+                </div>
+            </section>
+
+            <!-- Author Information Input -->
+            <section class="input-section">
+                <h2>4. Author Information</h2>
+                <div class="input-area">
+                    <textarea 
+                        id="authorInfo" 
+                        placeholder="Paste author information here...
+
+Example:
+Client: John Smith
+Email: john@email.com  
+Book: My Success Story
+Genre: Business/Nonfiction
+Word Count: 45000
+Editing: Line editing and proofreading
+Marketing: Bestseller campaign, website
+Budget: $6000"
+                        rows="8"
+                    ></textarea>
+                    <button id="parseInfo" disabled>Parse & Auto-Fill</button>
+                </div>
+            </section>
+
+            <!-- Form Preview -->
+            <section class="preview-section">
+                <h2>5. Form Preview</h2>
+                <div class="preview-container" id="previewContainer">
+                    <p class="no-preview">Complete steps above to see preview</p>
+                </div>
+            </section>
+
+            <!-- Download Section -->
+            <section class="download-section">
+                <h2>6. Download Filled PDF</h2>
+                <button id="downloadPDF" disabled>Download Completed PDF</button>
+            </section>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p id="loadingText">Processing...</p>
+        </div>
+    </div>
+
+    <!-- Include PDF-lib -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    
+    <!-- Application Scripts -->
+    <script src="js/pdf-analyzer.js"></script>
+    <script src="js/preset-manager.js"></script>
+    <script src="js/nlp-processor.js"></script>
+    <script src="js/form-filler.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

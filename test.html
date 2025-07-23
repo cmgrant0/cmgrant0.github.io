@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Test</title>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+</head>
+<body>
+    <h1>PDF Field Analysis Test</h1>
+    <button onclick="testPDF()">Test Local PDF</button>
+    <div id="results"></div>
+
+    <script>
+        async function testPDF() {
+            try {
+                // Fetch the PDF file
+                const response = await fetch('./ARPress-AUTHOR-SERVICES-PLAN_Robert-Marshall_12160_7.21.25 copy.pdf');
+                const arrayBuffer = await response.arrayBuffer();
+                
+                // Load the PDF
+                const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                const form = pdfDoc.getForm();
+                const fields = form.getFields();
+                
+                // Display results
+                let html = `<h2>Found ${fields.length} form fields:</h2><ul>`;
+                fields.forEach(field => {
+                    html += `<li><strong>${field.getName()}</strong> (${field.constructor.name})</li>`;
+                });
+                html += '</ul>';
+                
+                document.getElementById('results').innerHTML = html;
+                
+            } catch (error) {
+                document.getElementById('results').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
