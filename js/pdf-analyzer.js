@@ -111,36 +111,146 @@ class PDFAnalyzer {
         container.innerHTML = fieldsHTML;
     }
 
-    // Smart field mapping for common patterns
+    // Smart field mapping for Author Services Plan PDF
     getFieldMappings() {
         const mappings = {};
         
         this.formFields.forEach(field => {
-            const name = field.name.toLowerCase();
+            const name = field.name;
             
-            // Map common field patterns
-            if (name.includes('client') && name.includes('name')) {
-                mappings.clientName = field.name;
-            } else if (name.includes('book') && name.includes('title')) {
-                mappings.bookTitle = field.name;
-            } else if (name.includes('email')) {
-                mappings.email = field.name;
-            } else if (name.includes('phone')) {
-                mappings.phone = field.name;
-            } else if (name.includes('word') && name.includes('count')) {
-                mappings.wordCount = field.name;
-            } else if (name.includes('nonfiction') && name.includes('manuscript')) {
-                mappings.nonfictionManuscript = field.name;
-            } else if (name.includes('fiction') && name.includes('manuscript')) {
-                mappings.fictionManuscript = field.name;
-            } else if (name.includes('proofreading') && name.includes('only')) {
-                mappings.proofreadingOnly = field.name;
-            } else if (name.includes('developmental') && name.includes('editing')) {
-                mappings.developmentalEditing = field.name;
-            } else if (name.includes('line') && name.includes('editing')) {
-                mappings.lineEditing = field.name;
-            } else if (name.includes('copy') && name.includes('editing')) {
-                mappings.copyEditing = field.name;
+            // Exact field name mappings for Author Services Plan PDF
+            switch (name) {
+                // Basic client information
+                case 'CLIENT NAME':
+                    mappings.clientName = field.name;
+                    break;
+                case 'BOOK TITLE':
+                    mappings.bookTitle = field.name;
+                    break;
+                case 'EMAIL ADDRESS':
+                    mappings.email = field.name;
+                    break;
+                case 'PHONE NUMBER':
+                    mappings.phone = field.name;
+                    break;
+                case 'Word Count':
+                    mappings.wordCount = field.name;
+                    break;
+                    
+                // Manuscript type
+                case 'Nonfiction Manuscript':
+                    mappings.nonfictionManuscript = field.name;
+                    break;
+                case 'Fiction Manuscript':
+                    mappings.fictionManuscript = field.name;
+                    break;
+                    
+                // Editing services
+                case 'Proofreading ONLY Most Popular Option':
+                    mappings.proofreadingOnly = field.name;
+                    break;
+                case 'Developmental Editing w Critique Report':
+                    mappings.developmentalEditing = field.name;
+                    break;
+                case 'Line Editing SubstantiveStructural and Copy Editing':
+                    mappings.lineEditing = field.name;
+                    break;
+                case 'CopyEditing Proofreading Combined':
+                    mappings.copyEditingProofreadingCombined = field.name;
+                    break;
+                case 'Proofreading':
+                    mappings.proofreading = field.name;
+                    break;
+                    
+                // Publishing services
+                case 'Book Design Production':
+                    mappings.bookDesignProduction = field.name;
+                    break;
+                case 'Amazon IngramSpark MOST POPULAR':
+                    mappings.amazonIngramSpark = field.name;
+                    break;
+                case 'Print on Demand Publication':
+                    mappings.printOnDemand = field.name;
+                    break;
+                case 'Copyright':
+                    mappings.copyright = field.name;
+                    break;
+                    
+                // Marketing services
+                case 'Amazon Bestseller Campaign Free eBook 1 Guaranteed':
+                    mappings.bestsellerCampaignFree = field.name;
+                    break;
+                case 'Amazon Bestseller Campaign Paid eBook Top 100 Guaranteed':
+                    mappings.bestsellerCampaignPaid = field.name;
+                    break;
+                case 'Barnes Noble Bestseller Campaign Paid eBook Top 100 Guaranteed':
+                    mappings.barnesNobleBestseller = field.name;
+                    break;
+                case 'Author Website':
+                    mappings.authorWebsite = field.name;
+                    break;
+                case 'Author Website Premium':
+                    mappings.authorWebsitePremium = field.name;
+                    break;
+                case 'Press Release on the AP Newswire':
+                    mappings.pressRelease = field.name;
+                    break;
+                case 'Author Wiki Page':
+                    mappings.authorWikiPage = field.name;
+                    break;
+                    
+                // Bestseller campaign tiers
+                case 'Bronze one campaign':
+                    mappings.bronzeCampaign = field.name;
+                    break;
+                case 'Silver four campaigns':
+                    mappings.silverCampaign = field.name;
+                    break;
+                case 'Gold six campaigns':
+                    mappings.goldCampaign = field.name;
+                    break;
+                    
+                // Sales boost options
+                case '250 guaranteed book sales':
+                    mappings.salesBoost250 = field.name;
+                    break;
+                case '500 guaranteed book sales':
+                    mappings.salesBoost500 = field.name;
+                    break;
+                case '750 guaranteed book sales':
+                    mappings.salesBoost750 = field.name;
+                    break;
+                case '1000 guaranteed book sales':
+                    mappings.salesBoost1000 = field.name;
+                    break;
+                    
+                // Additional services
+                case 'Audiobook Production Publication excluding narration fees':
+                    mappings.audiobookProduction = field.name;
+                    break;
+                case 'Book Video Trailer Service':
+                    mappings.bookVideoTrailer = field.name;
+                    break;
+                case 'Marketing Images 20 universal use ie website social media':
+                    mappings.marketingImages = field.name;
+                    break;
+                case 'Editorial Review The Book Revue':
+                    mappings.editorialReview = field.name;
+                    break;
+                case 'Interview on American Real Talk Show after book release':
+                    mappings.interviewShow = field.name;
+                    break;
+                    
+                // Other fields
+                case 'of Interior Images':
+                    mappings.interiorImages = field.name;
+                    break;
+                case 'AIgenerated indicate scope here':
+                    mappings.aiGenerated = field.name;
+                    break;
+                case 'Is there an existing Amazon listing If so note URL':
+                    mappings.existingAmazonListing = field.name;
+                    break;
             }
         });
 

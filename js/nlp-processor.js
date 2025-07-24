@@ -67,6 +67,9 @@ class NLPProcessor {
 
     // Main parsing function
     parseAuthorInfo(text) {
+        // Store original text for service mapping
+        this.originalText = text;
+        
         const extracted = {
             clientName: this.extractClientName(text),
             bookTitle: this.extractBookTitle(text),
@@ -83,7 +86,15 @@ class NLPProcessor {
     }
 
     extractClientName(text) {
+        // First try exact "Client:" pattern
+        const clientMatch = text.match(/Client:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
+        if (clientMatch) {
+            return clientMatch[1].trim();
+        }
+        
+        // Try other name patterns
         for (const pattern of this.patterns.clientName) {
+            pattern.lastIndex = 0; // Reset regex state
             const match = pattern.exec(text);
             if (match) {
                 return match[1].trim();
@@ -94,10 +105,19 @@ class NLPProcessor {
         const lines = text.split('\n');
         for (const line of lines) {
             const trimmed = line.trim();
-            if (trimmed.match(/^[A-Z][a-z]+\s+[A-Z][a-z]+/)) {
+            // Skip lines that are clearly not names
+            if (trimmed.toLowerCase().includes('client:') || 
+                trimmed.toLowerCase().includes('services') ||
+                trimmed.toLowerCase().includes('book') ||
+                trimmed.toLowerCase().includes('email') ||
+                trimmed.toLowerCase().includes('phone')) {
+                continue;
+            }
+            
+            if (trimmed.match(/^[A-Z][a-z]+\s+[A-Z][a-z]+$/)) {
                 const words = trimmed.split(/\s+/);
-                if (words.length >= 2 && words.length <= 4) {
-                    return words.slice(0, Math.min(3, words.length)).join(' ');
+                if (words.length >= 2 && words.length <= 3) {
+                    return words.join(' ');
                 }
             }
         }
@@ -106,12 +126,27 @@ class NLPProcessor {
     }
 
     extractBookTitle(text) {
+        // First try exact "Book Title:" pattern
+        const titleMatch = text.match(/Book Title:\s*([^\n\r]+)/i);
+        if (titleMatch) {
+            return titleMatch[1].trim().replace(/[\[\]]/g, ''); // Remove brackets like [Not specified - marriage advice book]
+        }
+        
+        // Try other title patterns
         for (const pattern of this.patterns.bookTitle) {
+            pattern.lastIndex = 0; // Reset regex state
             const match = pattern.exec(text);
             if (match) {
                 return match[1].trim().replace(/['"]/g, '');
             }
         }
+        
+        // Look for book description patterns
+        const descMatch = text.match(/marriage advice book|empty nesters|Christian Living/i);
+        if (descMatch) {
+            return null; // Don't extract generic descriptions as titles
+        }
+        
         return null;
     }
 
@@ -136,7 +171,15 @@ class NLPProcessor {
     }
 
     extractWordCount(text) {
+        // First try exact "Word Count:" pattern
+        const wordCountMatch = text.match(/Word Count:\s*(?:Approximately\s*)?([0-9,]+)/i);
+        if (wordCountMatch) {
+            return parseInt(wordCountMatch[1].replace(/,/g, ''));
+        }
+        
+        // Try other patterns
         for (const pattern of this.patterns.wordCount) {
+            pattern.lastIndex = 0; // Reset regex state
             const match = pattern.exec(text);
             if (match) {
                 const count = match[1].replace(/,/g, '');
@@ -208,6 +251,7 @@ class NLPProcessor {
     // Map extracted data to PDF form fields
     mapToFormFields(extractedData, fieldMappings) {
         const formData = {};
+        const text = this.originalText || '';
 
         // Map basic fields
         if (extractedData.clientName && fieldMappings.clientName) {
@@ -239,10 +283,53 @@ class NLPProcessor {
             }
         }
 
-        // Map common service selections
-        if (extractedData.services.editing.some(service => 
-            service.toLowerCase().includes('proofread')) && fieldMappings.proofreadingOnly) {
+        // Map editing services based on text content
+        if (text.toLowerCase().includes('line editing') && fieldMappings.lineEditing) {
+            formData[fieldMappings.lineEditing] = true;
+        } else if (text.toLowerCase().includes('developmental editing') && fieldMappings.developmentalEditing) {
+            formData[fieldMappings.developmentalEditing] = true;
+        } else if (text.toLowerCase().includes('copy editing') && fieldMappings.copyEditingProofreadingCombined) {
+            formData[fieldMappings.copyEditingProofreadingCombined] = true;
+        } else if (text.toLowerCase().includes('proofreading') && fieldMappings.proofreadingOnly) {
             formData[fieldMappings.proofreadingOnly] = true;
+        }
+
+        // Map publishing services
+        if (text.toLowerCase().includes('cover design') || text.toLowerCase().includes('interior design')) {
+            if (fieldMappings.bookDesignProduction) {
+                formData[fieldMappings.bookDesignProduction] = true;
+            }
+        }
+        
+        if (text.toLowerCase().includes('amazon') && text.toLowerCase().includes('ingramspark')) {
+            if (fieldMappings.amazonIngramSpark) {
+                formData[fieldMappings.amazonIngramSpark] = true;
+            }
+        }
+        
+        if (text.toLowerCase().includes('copyright registration')) {
+            if (fieldMappings.copyright) {
+                formData[fieldMappings.copyright] = true;
+            }
+        }
+
+        // Map marketing services
+        if (text.toLowerCase().includes('bestseller campaign')) {
+            if (fieldMappings.bestsellerCampaignFree) {
+                formData[fieldMappings.bestsellerCampaignFree] = true;
+            }
+        }
+        
+        if (text.toLowerCase().includes('press release')) {
+            if (fieldMappings.pressRelease) {
+                formData[fieldMappings.pressRelease] = true;
+            }
+        }
+        
+        if (text.toLowerCase().includes('website')) {
+            if (fieldMappings.authorWebsite) {
+                formData[fieldMappings.authorWebsite] = true;
+            }
         }
 
         return formData;
