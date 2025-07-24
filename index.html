@@ -11,6 +11,10 @@
         <header>
             <h1>AR Press PDF Form Automation</h1>
             <p>Upload PDF forms, create templates, and auto-fill with natural language</p>
+            <div class="debug-controls">
+                <button id="toggleDebug" class="debug-btn">🐛 Show Debug Panel</button>
+                <button id="exportLogs" class="debug-btn">📋 Export Logs</button>
+            </div>
         </header>
 
         <main>
@@ -88,6 +92,21 @@ Budget: $6000"
                 <h2>6. Download Filled PDF</h2>
                 <button id="downloadPDF" disabled>Download Completed PDF</button>
             </section>
+
+            <!-- Debug Panel -->
+            <section class="debug-section" id="debugPanel" style="display: none;">
+                <h2>🐛 Debug Information</h2>
+                <div class="debug-content">
+                    <div class="debug-header">
+                        <div class="debug-stats" id="debugStats"></div>
+                        <div class="debug-actions">
+                            <button id="clearLogs" class="debug-btn-small">Clear Logs</button>
+                            <button id="analyzeFields" class="debug-btn-small">Analyze Fields</button>
+                        </div>
+                    </div>
+                    <div class="debug-logs" id="debugLogs"></div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -103,6 +122,7 @@ Budget: $6000"
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     
     <!-- Application Scripts -->
+    <script src="js/debug-logger.js"></script>
     <script src="js/pdf-analyzer.js"></script>
     <script src="js/preset-manager.js"></script>
     <script src="js/nlp-processor.js"></script>

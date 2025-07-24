@@ -293,6 +293,162 @@ textarea {
     100% { transform: rotate(360deg); }
 }
 
+/* Debug Panel Styles */
+.debug-controls {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.debug-btn {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 5px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.debug-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.debug-section {
+    background: #1a1a1a;
+    color: #f0f0f0;
+    border: 2px solid #333;
+}
+
+.debug-section h2 {
+    color: #4CAF50;
+    border-bottom-color: #4CAF50;
+}
+
+.debug-content {
+    background: #252525;
+    border-radius: 5px;
+    padding: 15px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.debug-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #444;
+}
+
+.debug-stats {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.debug-stat {
+    background: #333;
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-size: 0.9rem;
+    color: #4CAF50;
+}
+
+.debug-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.debug-btn-small {
+    padding: 5px 10px;
+    background: #444;
+    color: #f0f0f0;
+    border: 1px solid #666;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.debug-btn-small:hover {
+    background: #555;
+    border-color: #888;
+}
+
+.debug-logs {
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.debug-log-entry {
+    margin-bottom: 10px;
+    padding: 8px;
+    border-radius: 3px;
+    border-left: 3px solid #666;
+}
+
+.debug-log-entry.debug-error {
+    background: rgba(244, 67, 54, 0.1);
+    border-left-color: #f44336;
+}
+
+.debug-log-entry.debug-warn {
+    background: rgba(255, 193, 7, 0.1);
+    border-left-color: #ffc107;
+}
+
+.debug-log-entry.debug-info {
+    background: rgba(33, 150, 243, 0.1);
+    border-left-color: #2196f3;
+}
+
+.debug-log-entry.debug-debug {
+    background: rgba(156, 39, 176, 0.1);
+    border-left-color: #9c27b0;
+}
+
+.debug-time {
+    color: #888;
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.debug-category {
+    color: #4CAF50;
+    margin-right: 10px;
+    font-weight: bold;
+}
+
+.debug-message {
+    color: #f0f0f0;
+}
+
+.debug-data {
+    margin-top: 5px;
+    padding: 8px;
+    background: #1a1a1a;
+    border: 1px solid #444;
+    border-radius: 3px;
+    color: #ddd;
+    font-size: 0.8rem;
+    overflow-x: auto;
+}
+
+/* Hide debug panel by default */
+.debug-section {
+    display: none;
+}
+
+.debug-section.show {
+    display: block;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .container {

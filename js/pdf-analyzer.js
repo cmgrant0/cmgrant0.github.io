@@ -5,13 +5,26 @@ class PDFAnalyzer {
     }
 
     async analyzePDF(file) {
+        const logger = window.debugLogger;
+        logger.debug('PDF_ANALYSIS', 'Starting PDF analysis', { 
+            fileName: file.name, 
+            fileSize: file.size 
+        });
+
         try {
             const arrayBuffer = await file.arrayBuffer();
+            logger.debug('PDF_ANALYSIS', 'File loaded as ArrayBuffer', { 
+                bufferSize: arrayBuffer.byteLength 
+            });
+
             this.currentPDF = await PDFLib.PDFDocument.load(arrayBuffer);
+            logger.debug('PDF_ANALYSIS', 'PDF document loaded with PDF-lib');
             
             // Extract form fields
             const form = this.currentPDF.getForm();
             const fields = form.getFields();
+            
+            logger.debug('PDF_ANALYSIS', `Extracted ${fields.length} form fields from PDF`);
             
             this.formFields = fields.map(field => {
                 const fieldData = {

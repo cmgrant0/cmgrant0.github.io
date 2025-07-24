@@ -6,72 +6,215 @@ class FormFiller {
 
     // Fill form fields with provided data
     async fillForm(formData) {
+        const logger = window.debugLogger;
+        logger.info('FORM_FILLING', 'Starting PDF form filling process');
+        
         if (!this.pdfAnalyzer.getCurrentPDF()) {
-            throw new Error('No PDF loaded');
+            const error = new Error('No PDF loaded');
+            logger.error('FORM_FILLING', 'No PDF document available', { error: error.message });
+            throw error;
         }
+
+        logger.logFormDataMapping(formData);
+        const timer = logger.startTimer('PDF_FORM_FILLING');
 
         try {
             // Get a copy of the current PDF
-            const pdfDoc = await PDFLib.PDFDocument.load(
-                await this.pdfAnalyzer.getCurrentPDF().save()
-            );
+            logger.debug('FORM_FILLING', 'Creating copy of PDF document');
+            const originalPDFBytes = await this.pdfAnalyzer.getCurrentPDF().save();
+            const pdfDoc = await PDFLib.PDFDocument.load(originalPDFBytes);
+            
+            logger.debug('FORM_FILLING', 'PDF document loaded successfully', { 
+                size: originalPDFBytes.length 
+            });
             
             const form = pdfDoc.getForm();
+            const availableFields = form.getFields();
+            
+            logger.debug('FORM_FILLING', `Found ${availableFields.length} form fields in PDF`, {
+                fieldNames: availableFields.map(f => f.getName())
+            });
+            
             this.currentFormData = { ...formData };
+            let successCount = 0;
+            let failureCount = 0;
 
-            // Fill each field
+            // Fill each field with detailed logging
             for (const [fieldName, value] of Object.entries(formData)) {
+                logger.debug('FIELD_FILLING', `Attempting to fill field: ${fieldName}`, { 
+                    fieldName, 
+                    value, 
+                    valueType: typeof value 
+                });
+
                 try {
+                    // Check if field exists
                     const field = form.getField(fieldName);
+                    const fieldType = field.constructor.name;
                     
-                    if (field.constructor.name === 'PDFTextField') {
-                        field.setText(String(value));
-                    } else if (field.constructor.name === 'PDFCheckBox') {
+                    logger.debug('FIELD_FILLING', `Field found: ${fieldName}`, { 
+                        fieldType,
+                        isReadOnly: field.isReadOnly?.() || 'unknown'
+                    });
+                    
+                    // Fill based on field type
+                    if (fieldType === 'PDFTextField') {
+                        const stringValue = String(value);
+                        field.setText(stringValue);
+                        logger.logFieldFilling(fieldName, stringValue, true);
+                        successCount++;
+                        
+                    } else if (fieldType === 'PDFCheckBox') {
                         if (value) {
                             field.check();
+                            logger.logFieldFilling(fieldName, 'checked', true);
                         } else {
                             field.uncheck();
+                            logger.logFieldFilling(fieldName, 'unchecked', true);
                         }
-                    } else if (field.constructor.name === 'PDFDropdown') {
-                        field.select(String(value));
-                    } else if (field.constructor.name === 'PDFRadioGroup') {
-                        field.select(String(value));
+                        successCount++;
+                        
+                    } else if (fieldType === 'PDFDropdown') {
+                        const stringValue = String(value);
+                        const options = field.getOptions();
+                        
+                        if (options.includes(stringValue)) {
+                            field.select(stringValue);
+                            logger.logFieldFilling(fieldName, stringValue, true);
+                            successCount++;
+                        } else {
+                            logger.warn('FIELD_FILLING', `Value "${stringValue}" not in dropdown options`, {
+                                fieldName,
+                                value: stringValue,
+                                availableOptions: options
+                            });
+                            failureCount++;
+                        }
+                        
+                    } else if (fieldType === 'PDFRadioGroup') {
+                        const stringValue = String(value);
+                        const options = field.getOptions();
+                        
+                        if (options.includes(stringValue)) {
+                            field.select(stringValue);
+                            logger.logFieldFilling(fieldName, stringValue, true);
+                            successCount++;
+                        } else {
+                            logger.warn('FIELD_FILLING', `Value "${stringValue}" not in radio options`, {
+                                fieldName,
+                                value: stringValue,
+                                availableOptions: options
+                            });
+                            failureCount++;
+                        }
+                        
+                    } else {
+                        logger.warn('FIELD_FILLING', `Unsupported field type: ${fieldType}`, {
+                            fieldName,
+                            fieldType,
+                            value
+                        });
+                        failureCount++;
                     }
+                    
                 } catch (fieldError) {
-                    console.warn(`Could not fill field ${fieldName}:`, fieldError);
+                    logger.logFieldFilling(fieldName, value, false, fieldError);
+                    failureCount++;
+                    
+                    // Try to get more information about the error
+                    const fieldExists = availableFields.some(f => f.getName() === fieldName);
+                    if (!fieldExists) {
+                        logger.error('FIELD_FILLING', `Field "${fieldName}" does not exist in PDF`, {
+                            fieldName,
+                            availableFields: availableFields.map(f => f.getName())
+                        });
+                    }
                 }
             }
 
+            const duration = timer.end();
+            logger.info('FORM_FILLING', `Form filling completed`, {
+                totalFields: Object.keys(formData).length,
+                successful: successCount,
+                failed: failureCount,
+                duration: duration
+            });
+
             return pdfDoc;
+            
         } catch (error) {
-            console.error('Form filling error:', error);
+            timer.end();
+            logger.error('FORM_FILLING', 'Critical error during form filling', {
+                error: error.message,
+                stack: error.stack
+            });
             throw error;
         }
     }
 
     // Generate and download filled PDF
     async downloadFilledPDF(formData, filename = 'filled-form.pdf') {
+        const logger = window.debugLogger;
+        logger.info('PDF_DOWNLOAD', `Starting PDF download process: ${filename}`);
+        
+        const downloadTimer = logger.startTimer('PDF_DOWNLOAD');
+        
         try {
+            // Fill the form
             const filledPDF = await this.fillForm(formData);
-            const pdfBytes = await filledPDF.save();
+            logger.debug('PDF_DOWNLOAD', 'Form filling completed, generating PDF bytes');
             
-            // Create download link
+            // Generate PDF bytes
+            const pdfBytes = await filledPDF.save();
+            logger.debug('PDF_DOWNLOAD', `PDF bytes generated`, { 
+                size: pdfBytes.length,
+                sizeKB: Math.round(pdfBytes.length / 1024)
+            });
+            
+            // Validate PDF bytes
+            if (!pdfBytes || pdfBytes.length === 0) {
+                throw new Error('Generated PDF is empty');
+            }
+            
+            // Create download blob
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
             
+            logger.debug('PDF_DOWNLOAD', 'Created download blob and URL');
+            
+            // Create and trigger download
             const link = document.createElement('a');
             link.href = url;
             link.download = filename;
+            link.style.display = 'none';
             document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
             
-            // Clean up the URL object
+            logger.debug('PDF_DOWNLOAD', `Triggering download: ${filename}`);
+            link.click();
+            
+            // Cleanup
+            document.body.removeChild(link);
             URL.revokeObjectURL(url);
             
-            return { success: true };
+            const duration = downloadTimer.end();
+            logger.logPDFGeneration(true);
+            logger.info('PDF_DOWNLOAD', `PDF download completed successfully`, {
+                filename,
+                fileSize: pdfBytes.length,
+                duration
+            });
+            
+            return { success: true, filename, fileSize: pdfBytes.length };
+            
         } catch (error) {
-            console.error('Download error:', error);
+            downloadTimer.end();
+            logger.logPDFGeneration(false, error);
+            logger.error('PDF_DOWNLOAD', 'PDF download failed', {
+                filename,
+                error: error.message,
+                stack: error.stack
+            });
+            
             return { success: false, error: error.message };
         }
     }

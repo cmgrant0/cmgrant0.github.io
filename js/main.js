@@ -25,8 +25,14 @@ class PDFFormApp {
         // Download functionality
         this.setupDownload();
         
+        // Debug controls
+        this.setupDebugControls();
+        
         // Initialize preset selector
         this.presetManager.updatePresetSelector();
+        
+        // Log initialization
+        window.debugLogger.info('APP_INIT', 'PDF Form App initialized successfully');
     }
 
     setupFileUpload() {
@@ -68,12 +74,23 @@ class PDFFormApp {
     }
 
     async handleFileUpload(file) {
+        const logger = window.debugLogger;
+        logger.info('FILE_UPLOAD', `Processing file upload: ${file.name}`, {
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type,
+            lastModified: new Date(file.lastModified).toISOString()
+        });
+
         if (file.type !== 'application/pdf') {
-            this.showUploadStatus('Please select a PDF file', 'error');
+            const error = 'Please select a PDF file';
+            logger.warn('FILE_UPLOAD', error, { actualType: file.type });
+            this.showUploadStatus(error, 'error');
             return;
         }
 
         this.showLoading('Analyzing PDF form fields...');
+        const uploadTimer = logger.startTimer('PDF_ANALYSIS');
         
         try {
             const result = await this.pdfAnalyzer.analyzePDF(file);
@@ -82,6 +99,9 @@ class PDFFormApp {
                 this.currentFields = result.fields;
                 this.currentMappings = this.pdfAnalyzer.getFieldMappings();
                 
+                logger.logPDFAnalysis(result.fieldCount, result.fields);
+                logger.logFieldMapping(this.currentMappings);
+                
                 this.showUploadStatus(`✓ Found ${result.fieldCount} form fields`, 'success');
                 this.pdfAnalyzer.displayFields('fieldsContainer');
                 
@@ -89,10 +109,19 @@ class PDFFormApp {
                 document.getElementById('saveTemplate').disabled = false;
                 document.getElementById('parseInfo').disabled = false;
                 
+                uploadTimer.end();
+                logger.info('FILE_UPLOAD', 'PDF analysis completed successfully');
+                
             } else {
+                logger.error('FILE_UPLOAD', 'PDF analysis failed', { error: result.error });
                 this.showUploadStatus(`Error: ${result.error}`, 'error');
             }
         } catch (error) {
+            uploadTimer.end();
+            logger.error('FILE_UPLOAD', 'Critical error during PDF analysis', {
+                error: error.message,
+                stack: error.stack
+            });
             this.showUploadStatus(`Error analyzing PDF: ${error.message}`, 'error');
         } finally {
             this.hideLoading();
@@ -269,6 +298,107 @@ class PDFFormApp {
     hideLoading() {
         const overlay = document.getElementById('loadingOverlay');
         overlay.classList.remove('show');
+    }
+
+    setupDebugControls() {
+        const toggleDebugBtn = document.getElementById('toggleDebug');
+        const exportLogsBtn = document.getElementById('exportLogs');
+        const clearLogsBtn = document.getElementById('clearLogs');
+        const analyzeFieldsBtn = document.getElementById('analyzeFields');
+        const debugPanel = document.getElementById('debugPanel');
+
+        // Toggle debug panel
+        toggleDebugBtn.addEventListener('click', () => {
+            const isVisible = debugPanel.style.display !== 'none';
+            
+            if (isVisible) {
+                debugPanel.style.display = 'none';
+                toggleDebugBtn.textContent = '🐛 Show Debug Panel';
+            } else {
+                debugPanel.style.display = 'block';
+                debugPanel.classList.add('show');
+                toggleDebugBtn.textContent = '🐛 Hide Debug Panel';
+                window.debugLogger.updateDebugUI();
+            }
+            
+            window.debugLogger.info('DEBUG_UI', `Debug panel ${isVisible ? 'hidden' : 'shown'}`);
+        });
+
+        // Export logs
+        exportLogsBtn.addEventListener('click', () => {
+            window.debugLogger.exportLogs();
+        });
+
+        // Clear logs
+        clearLogsBtn.addEventListener('click', () => {
+            if (confirm('Clear all debug logs?')) {
+                window.debugLogger.clearLogs();
+            }
+        });
+
+        // Analyze fields (diagnostic tool)
+        analyzeFieldsBtn.addEventListener('click', () => {
+            this.analyzeCurrentFields();
+        });
+    }
+
+    analyzeCurrentFields() {
+        const logger = window.debugLogger;
+        
+        if (this.currentFields.length === 0) {
+            logger.warn('FIELD_ANALYSIS', 'No PDF fields available for analysis');
+            alert('Please upload and analyze a PDF first');
+            return;
+        }
+
+        logger.info('FIELD_ANALYSIS', 'Starting detailed field analysis');
+
+        // Analyze field types
+        const fieldTypes = {};
+        this.currentFields.forEach(field => {
+            fieldTypes[field.type] = (fieldTypes[field.type] || 0) + 1;
+        });
+
+        // Analyze field mappings
+        const mappedFields = Object.keys(this.currentMappings).length;
+        const unmappedFields = this.currentFields.length - mappedFields;
+
+        // Check for potential issues
+        const issues = [];
+        this.currentFields.forEach(field => {
+            if (field.name.includes('undefined')) {
+                issues.push(`Undefined field name: ${field.name}`);
+            }
+            if (field.type === 'r' || field.type === 'e') {
+                issues.push(`Unusual field type "${field.type}" for field: ${field.name}`);
+            }
+        });
+
+        const analysis = {
+            totalFields: this.currentFields.length,
+            fieldTypes,
+            mappedFields,
+            unmappedFields,
+            issues,
+            fieldNames: this.currentFields.map(f => f.name),
+            mappings: this.currentMappings
+        };
+
+        logger.info('FIELD_ANALYSIS', 'Field analysis completed', analysis);
+
+        // Show summary
+        const summary = `
+Field Analysis Summary:
+- Total Fields: ${analysis.totalFields}
+- Mapped Fields: ${analysis.mappedFields}
+- Unmapped Fields: ${analysis.unmappedFields}
+- Field Types: ${Object.entries(fieldTypes).map(([type, count]) => `${type}(${count})`).join(', ')}
+- Issues Found: ${issues.length}
+
+Check console/debug logs for detailed information.
+        `;
+
+        alert(summary.trim());
     }
 }
 
