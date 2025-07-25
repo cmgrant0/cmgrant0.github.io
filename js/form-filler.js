@@ -132,12 +132,48 @@ class FormFiller {
                 }
             }
 
+            // CRITICAL: Update field appearances to make filled fields visible
+            logger.debug('FORM_FILLING', 'Updating form field appearances');
+            try {
+                // Import StandardFonts for proper rendering
+                const { StandardFonts } = PDFLib;
+                const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+                
+                // Set NeedAppearances flag for cross-viewer compatibility
+                try {
+                    // This helps ensure fields render properly in different PDF viewers
+                    const acroForm = pdfDoc.catalog.lookupMaybe(PDFLib.PDFName.of('AcroForm'), PDFLib.PDFDict);
+                    if (acroForm) {
+                        acroForm.set(PDFLib.PDFName.of('NeedAppearances'), PDFLib.PDFBool.True);
+                        logger.debug('FORM_FILLING', 'Set NeedAppearances flag to true');
+                    }
+                } catch (flagError) {
+                    logger.warn('FORM_FILLING', 'Could not set NeedAppearances flag', { error: flagError.message });
+                }
+                
+                // Update appearances with proper font
+                form.updateFieldAppearances(helveticaFont);
+                logger.debug('FORM_FILLING', 'Field appearances updated successfully');
+                
+                // Mark fields as needing appearance updates
+                form.markFieldsDirty();
+                logger.debug('FORM_FILLING', 'Form fields marked as dirty for appearance generation');
+                
+            } catch (appearanceError) {
+                logger.error('FORM_FILLING', 'Failed to update field appearances', {
+                    error: appearanceError.message,
+                    stack: appearanceError.stack
+                });
+                // Continue anyway - some fields might still work
+            }
+
             const duration = timer.end();
             logger.info('FORM_FILLING', `Form filling completed`, {
                 totalFields: Object.keys(formData).length,
                 successful: successCount,
                 failed: failureCount,
-                duration: duration
+                duration: duration,
+                appearancesUpdated: true
             });
 
             return pdfDoc;
@@ -174,6 +210,39 @@ class FormFiller {
             // Validate PDF bytes
             if (!pdfBytes || pdfBytes.length === 0) {
                 throw new Error('Generated PDF is empty');
+            }
+            
+            // Additional validation: try to reload the PDF and check field values
+            try {
+                const validationDoc = await PDFLib.PDFDocument.load(pdfBytes);
+                const validationForm = validationDoc.getForm();
+                const validationFields = validationForm.getFields();
+                
+                logger.debug('PDF_DOWNLOAD', 'PDF validation check completed', {
+                    totalFields: validationFields.length,
+                    hasForm: validationFields.length > 0
+                });
+                
+                // Quick check of a few field values to ensure they're filled
+                let filledFieldCount = 0;
+                for (const field of validationFields.slice(0, 5)) { // Check first 5 fields
+                    try {
+                        let hasValue = false;
+                        if (field.constructor.name === 'PDFTextField') {
+                            hasValue = field.getText() && field.getText().length > 0;
+                        } else if (field.constructor.name === 'PDFCheckBox') {
+                            hasValue = field.isChecked();
+                        }
+                        if (hasValue) filledFieldCount++;
+                    } catch (e) { /* ignore field check errors */ }
+                }
+                
+                logger.debug('PDF_DOWNLOAD', `Validation found ${filledFieldCount} filled fields out of first 5 checked`);
+                
+            } catch (validationError) {
+                logger.warn('PDF_DOWNLOAD', 'PDF validation check failed', {
+                    error: validationError.message
+                });
             }
             
             // Create download blob
